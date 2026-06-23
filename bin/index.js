@@ -40,7 +40,7 @@ async function startVite(clientProjectName){
             console.log(chalk.green('\n\n✨ Client application successfully scaffolded with Vite!\n\n'));
 
               const tanStackInput = await input({
-                message:'One last thing .. Would you like create include tanstack query ? (y/n)',
+                message:'One last thing .. Would you like to include tanstack query ? (y/n)',
                 required:false
               })
 
@@ -129,11 +129,9 @@ program
 
               console.log(chalk.green(`\n\n✨ Successfully scaffolded ${chalk.bold(projectName)}!\n\n`));
 
-
               if(clientName){
-                await fs.pathExists(clientName) ? console.error(chalk.red(`\n❌ Error: Directory "${projectName}" already exists.`)) : await startVite(clientName)
+                await fs.pathExists(clientName) ? console.error(chalk.red(`\n❌ Error: Directory "${clientName}" already exists.`)) : await startVite(clientName)
               }
-
 
             } else {
               console.log(chalk.red(`\n\nVite scaffolding exited with code ${code}`));
@@ -142,7 +140,9 @@ program
       }else{
         console.log(chalk.magenta('\n\n❌ No git no problem'))
         console.log(chalk.green(`\n\n✨ Successfully scaffolded ${chalk.bold(projectName)}!\n\n`));
-
+        if(clientName){
+          await fs.pathExists(clientName) ? console.error(chalk.red(`\n❌ Error: Directory "${clientName}" already exists.`)) : await startVite(clientName)
+        }
       }
       
     } catch (err) {
