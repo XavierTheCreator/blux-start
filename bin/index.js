@@ -64,7 +64,7 @@ async function startVite(clientProjectName){
     }
     else {
       console.log('\nNext steps:');
-      console.log(chalk.cyan(`  cd ${projectName}`));
+      console.log(chalk.cyan(`  cd ${clientProjectName}`));
       console.log(chalk.cyan('  npm install'));
       console.log(chalk.cyan('  npm run start\n'));
     }
