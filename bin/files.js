@@ -188,6 +188,8 @@ export const indexTs =
 `
 import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
+import type{ APIResponse } from '../interfaces/apiresponse.ts'
+
 
 const router = Router();
 
@@ -217,7 +219,7 @@ export async function DbConnect(){
 
 export const apiresponse =  
 `
-interface Response <T> {
+export interface APIResponse <T> {
     payload:T,
     statusCode: number,
     status: string

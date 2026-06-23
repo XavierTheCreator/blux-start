@@ -55,6 +55,8 @@ async function startVite(clientProjectName){
                   console.log(chalk.green('\n\n✨ All Set !\n\n'));
                 })
 
+              }else{
+                console.log(chalk.green('\n\n✨ All Set !\n\n'));
               }
 
           } else {
