@@ -6,7 +6,7 @@ import { input } from '@inquirer/prompts'
 import chalk from 'chalk';
 import fs from 'fs-extra';
 import path from 'path';
-import { spawn } from 'child_process'
+import { exec, spawn,spawnSync } from 'child_process'
 import { 
   apiresponse, 
   appTs,
@@ -15,61 +15,81 @@ import {
   indexTs,
   definePackageJson,
   tsConfig,
-  wwwwJs
+  wwwwJs,
+  socketFile
 } from './files.js'
 
 const program = new Command();
 
 
 async function startVite(clientProjectName){
-      const viteInput = await input({
-      message:'Would you like create a client-side application ?: (y/n)',
-      required:false
+  console.log(chalk.blue('\n🚀 Kicking off Vite process...\n'));        
+  const viteProcess = spawn('npm', ['create', 'vite@latest',' ',`${clientProjectName}`], {
+    cwd: process.cwd(), 
+    stdio: 'inherit',   
+    shell: true    
+  });
+
+  viteProcess.on('close', async (code) => {
+    if (code === 0) {
+      console.log(chalk.green('\n\n✨ Client application successfully scaffolded with Vite!\n\n'));
+
+        const tanStackInput = await input({
+          message:'One last thing .. Would you like to include tanstack query ? (y/n)',
+          required:false
+        })
+
+        if(tanStackInput === 'y'){
+          const tanStack = spawn('npm',['install','@tanstack/react-query'],{
+            cwd:path.join(process.cwd(),clientProjectName),
+            stdio:'inherit',
+            shell:false
+          })
+
+          tanStack.on('close',()=>{
+            console.log(chalk.green('\n\n✨ All Set !\n\n'));
+          })
+
+        }else{
+          console.log(chalk.green('\n\n✨ All Set !\n\n'));
+        }
+
+    } else {
+      console.log(chalk.red(`\nVite scaffolding exited with code ${code}`));
+    }
+  });
+
+  console.log(chalk.greenBright('\nAll set !'))
+}
+
+async function nodeVersionCheck(version){
+  return new Promise((resolve,reject) => {
+    console.log(chalk.blue('\n\nVersion found: '), version)
+    let exact = version.substring(1,3)
+    if(exact < 18){
+      reject('Node version not compatible: ', version)
+    }else{
+      resolve('Node version above 18')
+    }
+
+  })
+}
+
+async function asyncSpawn(directory,...args){
+  return new Promise((resolve,reject) => {
+    spawn(args.shift(),[...args],{
+      cwd:path.join(directory),
+      stdio:'inherit',
+      shell:false
     })
-
-    if(viteInput.trim() === 'y'){
-        console.log(chalk.blue('\n🚀 Kicking off Vite process...\n'));        
-        const viteProcess = spawn('npm', ['create', 'vite@latest',' ',`${clientProjectName}`], {
-          cwd: process.cwd(), 
-          stdio: 'inherit',   
-          shell: true    
-        });
-
-        viteProcess.on('close', async (code) => {
-          if (code === 0) {
-            console.log(chalk.green('\n\n✨ Client application successfully scaffolded with Vite!\n\n'));
-
-              const tanStackInput = await input({
-                message:'One last thing .. Would you like to include tanstack query ? (y/n)',
-                required:false
-              })
-
-              if(tanStackInput === 'y'){
-                const tanStack = spawn('npm',['install','@tanstack/react-query'],{
-                  cwd:path.join(process.cwd(),clientProjectName),
-                  stdio:'inherit',
-                  shell:true
-                })
-
-                tanStack.on('close',()=>{
-                  console.log(chalk.green('\n\n✨ All Set !\n\n'));
-                })
-
-              }else{
-                console.log(chalk.green('\n\n✨ All Set !\n\n'));
-              }
-
-          } else {
-            console.log(chalk.red(`\nVite scaffolding exited with code ${code}`));
-          }
-        });
-    }
-    else {
-      console.log('\nNext steps:');
-      console.log(chalk.cyan(`  cd ${clientProjectName}`));
-      console.log(chalk.cyan('  npm install'));
-      console.log(chalk.cyan('  npm run start\n'));
-    }
+    .on('error',(err) => {
+      reject(err)
+    })
+    .on('close',(code) => {
+      console.log(chalk.blueBright('\nDone !!\n'))
+      resolve(code)
+    })
+  })
 }
 
 program
@@ -96,8 +116,22 @@ program
     console.log(chalk.blue(`\n🚀 Creating a new TypeScript project in ${chalk.bold(targetDir)}...\n`));
 
     try {
-      // 2. Create directory structure
       const gitignore = `node_modules/\ndist/\n.env`;
+
+      // node version check 
+
+      console.log(chalk.blue('\n\nChecking node version...'))
+
+      let nodeVersion = ''
+      let nodeProcess = spawnSync('node',['-v'],{
+        cwd:process.cwd(),
+        stdio:"pipe",
+        shell:false
+      })
+
+      nodeVersion = Buffer.from(nodeProcess.stdout).toString()
+
+      await nodeVersionCheck(nodeVersion)
 
       // 4. Write files to target directory
       await fs.ensureDir(path.join(targetDir,'dist'))
@@ -110,43 +144,42 @@ program
       await fs.outputFile(path.join(targetDir,'src','routes','index.ts'),indexTs)
       await fs.outputFile(path.join(targetDir,'src','db','db.ts'),dbTs)
       await fs.outputFile(path.join(targetDir,'src','interfaces','apiresponse.ts'),apiresponse)
-
-      const gitForapi = await input({
-        message:'Would you like to run git init locally?: (y/n)',
+      
+      console.log(chalk.blueBright('\nInstalling packages for server...'))
+      
+      await asyncSpawn(targetDir,'npm','i')
+      
+      const socketInput = await input({
+        message:'Quick question, Would you like websockets on your server ?:(y/n)',
         required:false
       })
 
-      if(gitForapi === 'y'){
-          spawn('git',['init'],{
-            cwd:path.join(targetDir),
-            stdio:'inherit',
-            shell:true
-          })
-          .on('error',(err) => {
-            console.log(chalk.yellowBright('‼ An error occured with git command', err))
-          })
-          .on('close',async (code) =>{
-            if (code === 0) {
-              console.log(chalk.green('\n\n✨ Git has been set up locally !'));
+      if(socketInput.trim() === 'y'){
+        await asyncSpawn(targetDir,'npm','i','socket.io')
+        await fs.outputFile(path.join(targetDir,'src','sockets','socket.ts'),socketFile)
+      }
 
-              console.log(chalk.green(`\n\n✨ Successfully scaffolded ${chalk.bold(projectName)}!\n\n`));
+      const gitForapi = await input({
+        message:'Would you like to run git init locally ?: (y/n)',
+        required:false
+      })
 
-              if(clientName){
-                await fs.pathExists(clientName) ? console.error(chalk.red(`\n❌ Error: Directory "${clientName}" already exists.`)) : await startVite(clientName)
-              }
+      if(gitForapi.trim() === 'y'){
 
-            } else {
-              console.log(chalk.red(`\n\nVite scaffolding exited with code ${code}`));
-            }
-          })
+        await asyncSpawn(targetDir,'git','init')
+
+        console.log(chalk.green('\n\n✨ Git has been set up locally !'));
+        console.log(chalk.green(`\n\n✨ Successfully scaffolded ${chalk.bold(projectName)}!\n\n`));
+
       }else{
         console.log(chalk.magenta('\n\n❌ No git no problem'))
         console.log(chalk.green(`\n\n✨ Successfully scaffolded ${chalk.bold(projectName)}!\n\n`));
-        if(clientName){
-          await fs.pathExists(clientName) ? console.error(chalk.red(`\n❌ Error: Directory "${clientName}" already exists.`)) : await startVite(clientName)
-        }
       }
       
+      if(clientName){
+        await fs.pathExists(clientName) ? console.error(chalk.red(`\n❌ Error: Directory "${clientName}" already exists.`)) : await startVite(clientName)
+      }
+
     } catch (err) {
       if(err.message){
         console.error(chalk.red(err.message))

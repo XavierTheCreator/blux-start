@@ -184,8 +184,7 @@ export default app;
 
 `;
 
-export const indexTs = 
-`
+export const indexTs = `
 import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import type{ APIResponse } from '../interfaces/apiresponse.ts'
@@ -202,8 +201,7 @@ router.get('/', (_req: Request, _res: Response, _next: NextFunction) => {
 export default router;
 `
 
-export const dbTs = 
-`
+export const dbTs = `
 import sql  from 'mssql' 
 process.loadEnvFile('.env')
 
@@ -217,8 +215,7 @@ export async function DbConnect(){
 }
 `
 
-export const apiresponse =  
-`
+export const apiresponse = `
 export interface APIResponse <T> {
     payload:T,
     statusCode: number,
@@ -227,11 +224,16 @@ export interface APIResponse <T> {
 
 `
 
-export const env = 
-`
+export const env = `
 DB_HOST=localhost
 DB_PORT=1433
 DB_NAME=MyDatabaseName
 DB_USER=sa
 DB_PASSWORD=YourStrongPassword123!
+`
+
+export const socketFile = `
+import { Server } from "socket.io";
+const io = new Server(server);
+io.listen(3005);
 `
