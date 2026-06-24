@@ -190,4 +190,4 @@ program
 })
 
 
-program.parse(process.argv);
+program.parseAsync(process.argv);
